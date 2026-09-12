@@ -1,48 +1,178 @@
-<div class="kaaba">🕋</div>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>صلاتي - الإصدار الثابت</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0f172a;color:#fff;font-family:Tahoma;text-align:center;padding:10px}
+.header-container{max-width:480px;margin:0 auto 10px;padding:5px}
+.settings-btn{background:#1e293b;border:1px solid #facc15;color:#facc15;padding:8px 16px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:bold;margin-top:8px}
+.card{background:#1e293b;border:1px solid #334155;border-radius:16px;padding:16px;margin:10px auto;max-width:480px}
+h1{color:#facc15;margin:5px 0;font-size:26px}
+.city-display{color:#cbd5e1;font-size:15px;margin-bottom:6px;font-weight:bold}
+h2{color:#facc15;font-size:16px;margin:0 0 8px}
+.prayer{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#0f172a;border-radius:12px;margin:6px 0}
+.prayer.next{border:1px solid #facc15;background:#242f42}
+.prayer-info{display:flex;align-items:center;gap:8px}
+.time{color:#facc15;font-weight:bold;font-size:19px}
+.audio-btn{background:transparent;border:none;cursor:pointer;font-size:20px;padding:4px 8px;width:auto;margin:0}
+button{background:#facc15;color:#0f172a;border:none;padding:12px;border-radius:12px;font-weight:bold;width:100%;margin:5px 0;cursor:pointer}
+button.sec{background:#1e293b;color:#facc15;border:1px solid #facc15}
+select,input{width:100%;padding:11px;border-radius:10px;background:#0f172a;color:#fff;border:1px solid #334155;margin:5px 0}
+.small{opacity:.7;font-size:11px}#count{color:#facc15;font-size:20px;font-weight:bold;margin:10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+#qiblaCanvas{width:200px;height:200px;margin:8px auto;display:block;border-radius:50%;border:2px solid #facc15}
+</style>
+</head>
+<body>
+
+<div class="header-container">
+  <h1>🕌 صلاتي</h1>
+  <div id="cityName" class="city-display">📍 جارٍ تحميل المدينة...</div>
+  <button class="settings-btn" onclick="toggleSettings()">⚙️ الإعدادات</button>
 </div>
 
-<div class="qibla-arrow" id="qiblaArrow">▲</div>
+<div id="count"></div>
+<div id="date" class="small"></div>
 
-</div>
-
-<div class="qibla-degree" id="qiblaDegree">--°</div>
-
-<p style="opacity:.8;margin-top:8px">
-    اتجاه القبلة من موقعك
-</p>
-
-<div style="
-    margin-top:20px;
-    background:rgba(255,255,255,.1);
-    padding:15px;
-    border-radius:15px;">
-    📍 <span id="qiblaLocation">حدد موقعك أولاً</span>
-</div>
-
-</div>
-
-</div>
-
-
-<!-- CALENDAR -->
-<div id="calendarPage" class="page">
-
-<div class="header">
-    <div class="top">
-        <button onclick="showPage('homePage')" style="
-            border:0;background:transparent;color:white;font-size:25px;">→</button>
-        <h2>التقويم</h2>
-        <span>📅</span>
+<div id="settingsPanel" style="display:none">
+  <div class="card">
+    <h2>📍 ضبط الموقع</h2>
+    <div class="grid"><button onclick="getGPS()" class="sec">📡 GPS</button><button onclick="document.getElementById('city').focus()" class="sec">🔍 بحث بالمدينة</button></div>
+    <input id="city" placeholder="اكتب مدينتك مثلاً: Hann. Münden أو Berlin">
+    <div id="coords" class="small">51.4167, 9.65</div>
+  </div>
+  <div class="card">
+    <h2>🕋 القبلة: <span id="qiblaDegree">--°</span> من الشمال</h2>
+    <canvas id="qiblaCanvas" width="400" height="400"></canvas>
+    <div id="qiblaInfo" style="color:#facc15;font-weight:bold">--°</div>
+    <button onclick="startCompass()" class="sec">🧭 تفعيل البوصلة</button>
+  </div>
+  <div class="card">
+    <h2>🔊 اختيار المؤذن والإعدادات</h2>
+    <select id="adhanSel">
+      <option value="local">📱 adhan.mp3 محلي (للـ APK بدون نت)</option>
+      <option value="makkah">🕋 الحرم المكي</option>
+      <option value="madinah">🕌 الحرم المدني</option>
+      <option value="aqsa">🕌 المسجد الأقصى</option>
+      <option value="egypt">🎙️ أذان مصر (عبد الباسط)</option>
+    </select>
+    <div class="grid">
+      <button onclick="testAdhan()">🔔 تجربة</button>
+      <button id="enBtn" onclick="enableAdhan()" class="sec">🔊 تفعيل الصوت والإشعارات</button>
     </div>
+    <div id="status" class="small" style="color:#22c55e"></div>
+  </div>
 </div>
 
-<div class="section">
-    <div class="section-title">مواقيت الصلاة اليوم</div>
-    <div id="calendarTimes"></div>
+<div class="card">
+<h2>🕐 المواقيت والتنبيهات</h2>
+<div id="list"></div>
+<div class="grid">
+  <select id="method" onchange="saveAndRender()"><option value="MWL">رابطة العالم الإسلامي (18°)</option><option value="Egypt">الهيئة المصرية (19.5°)</option></select>
+  <select id="madhab" onchange="saveAndRender()"><option value="0">شافعي / جمهور</option><option value="1">حنفي</option></select>
+</div>
 </div>
 
-</div>
+<audio id="aud" preload="auto" playsinline></audio>
 
+<script>
+let lat=51.4167,lng=9.65,qiblaA=0,heading=0,enabled=false,last='';
+const aud=document.getElementById('aud');
+const statusEl=document.getElementById('status');
 
-<!-- SETTINGS -->
-<div id="settingsPage" class="page">
+function toggleSettings(){let p=document.getElementById('settingsPanel');p.style.display=p.style.display==='none'?'block':'none';}
+function requestNotificationPermission(){if("Notification"in window && Notification.permission!=="granted"){Notification.requestPermission();}}
+function sendNotification(n){if("Notification"in window && Notification.permission==="granted"){new Notification("🕌 صلاتي",{body:"حان الآن موعد أذان صلاة "+n,icon:"https://cdn-icons-png.flaticon.com/512/2833/2833315.png"});}}
+
+let prayerAudioSettings=JSON.parse(localStorage.getItem('prayerAudioSettings'))||{fajr:true,dhuhr:true,asr:true,maghrib:true,isha:true};
+function togglePrayerAudio(k){prayerAudioSettings[k]=!prayerAudioSettings[k];localStorage.setItem('prayerAudioSettings',JSON.stringify(prayerAudioSettings));render();}
+const sources={'local':'adhan.mp3','makkah':'https://www.islamcan.com/audio/adhan/azan1.mp3','madinah':'https://www.islamcan.com/audio/adhan/azan2.mp3','aqsa':'https://www.islamcan.com/audio/adhan/azan3.mp3','egypt':'https://www.islamcan.com/audio/adhan/azan8.mp3'};
+function setSource(v){aud.src=sources[v]||sources['local'];aud.load();}
+
+document.getElementById('adhanSel').onchange=e=>{setSource(e.target.value);localStorage.setItem('adhanSrc',e.target.value);};
+
+let saved=localStorage.getItem('adhanSrc')||'local';document.getElementById('adhanSel').value=saved;setSource(saved);
+aud.addEventListener('error',()=>{let cur=document.getElementById('adhanSel').value;if(cur==='local'){document.getElementById('adhanSel').value='makkah';setSource('makkah');}});
+
+async function updateCityName(la,lo,custom){
+if(custom){document.getElementById('cityName').innerText='📍 '+custom;localStorage.setItem('cityNameText',custom);return;}
+try{let r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${la}&lon=${lo}`);let d=await r.json();let city=d.address.city||d.address.town||d.address.village||"موقعك الحالي";document.getElementById('cityName').innerText='📍 '+city;localStorage.setItem('cityNameText',city);}catch(e){document.getElementById('cityName').innerText='📍 '+la.toFixed(2)+', '+lo.toFixed(2);}}
+
+// === دالة الجي بي اس المعدلة والمصلحة ===
+function getGPS(){
+  const coordsEl = document.getElementById('coords');
+  
+  if (!navigator.geolocation) {
+    alert("❌ متصفحك لا يدعم تحديد الموقع (GPS)");
+    return;
+  }
+
+  coordsEl.innerText = "⏳ جاري جلب الموقع...";
+
+  navigator.geolocation.getCurrentPosition(
+    (p) => {
+      lat = p.coords.latitude;
+      lng = p.coords.longitude;
+      localStorage.setItem('lat', lat);
+      localStorage.setItem('lng', lng);
+      
+      coordsEl.innerText = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      
+      updateCityName(lat, lng);
+      calcQibla();
+      render();
+      alert("✅ تم تحديث موقعك بنجاح عبر الـ GPS");
+    },
+    (err) => {
+      let errorMsg = "حدث خطأ غير معروف";
+      switch(err.code) {
+        case err.PERMISSION_DENIED:
+          errorMsg = "❌ تم رفض إذن الوصول للموقع. يرجى تفعيل الموقع من إعدادات المتصفح أو الجهاز، والتأكد من فتح الملف بـ HTTPS وليس file://";
+          break;
+        case err.POSITION_UNAVAILABLE:
+          errorMsg = "❌ معلومات الموقع غير متاحة حالياً.";
+          break;
+        case err.TIMEOUT:
+          errorMsg = "❌ انتهت مهلة طلب الموقع، حاول مرة أخرى.";
+          break;
+      }
+      coordsEl.innerText = "❌ فشل تحديد الموقع";
+      alert(errorMsg);
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    }
+  );
+}
+
+document.getElementById('city').addEventListener('keydown',async e=>{if(e.key==='Enter'){let r=await fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(e.target.value)+'&limit=1');let d=await r.json();if(d.length){lat=parseFloat(d[0].lat);lng=parseFloat(d[0].lon);localStorage.setItem('lat',lat);localStorage.setItem('lng',lng);updateCityName(lat,lng,e.target.value);calcQibla();render();}}});
+
+if(localStorage.getItem('lat')){lat=parseFloat(localStorage.getItem('lat'));lng=parseFloat(localStorage.getItem('lng'));}
+if(localStorage.getItem('cityNameText')){document.getElementById('cityName').innerText='📍 '+localStorage.getItem('cityNameText');}else{updateCityName(lat,lng);}
+if(localStorage.getItem('method')){document.getElementById('method').value=localStorage.getItem('method');}
+if(localStorage.getItem('madhab')){document.getElementById('madhab').value=localStorage.getItem('madhab');}
+
+if(localStorage.getItem('adhan')==='1'){
+  enabled=true;
+  document.getElementById('enBtn').innerText='✅ مفعل ومحفوظ';
+  statusEl.innerText='✅ الصوت والإشعارات مفعلة تلقائياً';
+  aud.muted=true; aud.play().then(()=>{aud.pause();aud.muted=false;aud.currentTime=0;}).catch(()=>{});
+}
+
+function d2r(d){return d*Math.PI/180}function r2d(r){return r*180/Math.PI}
+function calcQibla(){const kLat=21.4225,kLng=39.8262;let y=Math.sin(d2r(kLng-lng));let x=Math.cos(d2r(lat))*Math.tan(d2r(kLat))-Math.sin(d2r(lat))*Math.cos(d2r(kLng-lng));qiblaA=r2d(Math.atan2(y,x));if(qiblaA<0)qiblaA+=360;document.getElementById('qiblaDegree').innerText=qiblaA.toFixed(1)+'°';document.getElementById('qiblaInfo').innerText=qiblaA.toFixed(1)+'° من الشمال';drawQibla();}
+function drawQibla(){let c=document.getElementById('qiblaCanvas'),ctx=c.getContext('2d');ctx.clearRect(0,0,400,400);ctx.save();ctx.translate(200,200);ctx.strokeStyle='#334155';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,140,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#facc15';ctx.font='bold 14px Tahoma';ctx.fillText('N',-6,-145);ctx.rotate(d2r(qiblaA-heading));ctx.fillStyle='#22c55e';ctx.beginPath();ctx.moveTo(0,-110);ctx.lineTo(-14,-75);ctx.lineTo(14,-75);ctx.closePath();ctx.fill();ctx.fillRect(-2,-75,4,95);ctx.restore();}
+function startCompass(){if(window.DeviceOrientationEvent){if(typeof DeviceOrientationEvent.requestPermission==='function'){DeviceOrientationEvent.requestPermission().then(s=>{if(s=='granted')window.addEventListener('deviceorientation',h=>{heading=h.webkitCompassHeading!=null?h.webkitCompassHeading:360-(h.alpha||0);drawQibla();});});}else window.addEventListener('deviceorientation',h=>{heading=h.webkitCompassHeading!=null?h.webkitCompassHeading:360-(h.alpha||0);drawQibla();});}}
+function getTimes(){let now=new Date();let j=(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())/86400000)+2440587.5;let n=j-2451545;let L=(280.46+0.9856474*n)%360,g=(357.528+0.9856003*n)%360;let lam=L+1.915*Math.sin(d2r(g))+0.02*Math.sin(d2r(2*g));let eps=23.439-0.0000004*n;let alpha=r2d(Math.atan2(Math.cos(d2r(eps))*Math.sin(d2r(lam)),Math.cos(d2r(lam))))/15;if(alpha<0)alpha+=24;let decl=r2d(Math.asin(Math.sin(d2r(eps))*Math.sin(d2r(lam))));let EoT=(L/15)-alpha;let off=now.getTimezoneOffset()/-60;let noon=12+(15*off-lng)/15-EoT;function HA(alt){let c=(Math.sin(d2r(alt))-Math.sin(d2r(decl))*Math.sin(d2r(lat)))/(Math.cos(d2r(decl))*Math.cos(d2r(lat)));c=Math.max(-1,Math.min(1,c));return r2d(Math.acos(c))/15;}function toDate(h){let b=new Date();let hours=Math.floor(h);let minutes=Math.floor((h-hours)*60);let seconds=Math.floor((((h-hours)*60)-minutes)*60);b.setHours(hours,minutes,seconds,0);return b;}let fajrAngle=document.getElementById('method').value=='Egypt'?19.5:18;let ishaAngle=document.getElementById('method').value=='Egypt'?17.5:17;let fajrH=HA(-fajrAngle),ishaH=HA(-ishaAngle),magH=HA(-0.833);let factor=document.getElementById('madhab').value==1?2:1;let delta=Math.abs(lat-decl);let asrAlt=r2d(Math.atan(1/(factor+Math.tan(d2r(delta)))));let asrH=HA(asrAlt);return{fajr:toDate(noon-fajrH),dhuhr:toDate(noon),asr:toDate(noon+asrH),maghrib:toDate(noon+magH),isha:toDate(noon+ishaH)};}
+function saveAndRender(){localStorage.setItem('method',document.getElementById('method').value);localStorage.setItem('madhab',document.getElementById('madhab').value);render();}
+function render(){let t=getTimes();let order=['fajr','dhuhr','asr','maghrib','isha'];let names={fajr:'الفجر',dhuhr:'الظهر',asr:'العصر',maghrib:'المغرب',isha:'العشاء'};let now=new Date();let next=null;for(let k of order){if(now<t[k]){next=k;break;}}if(!next)next='fajr';let diff=next=='fajr'&&now>t.isha?(t.fajr.getTime()+86400000-now.getTime()):(t[next]-now);let h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000);document.getElementById('count').innerText=names[next]+' بعد '+h+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');document.getElementById('date').innerText=now.toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long'});let html='';order.forEach(p=>{let d=t[p];let ft=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');let isAudioActive=prayerAudioSettings[p];if(enabled&&isAudioActive&&d.getHours()==now.getHours()&&d.getMinutes()==now.getMinutes()&&now.getSeconds()<3&&last!=p+ft){last=p+ft;aud.currentTime=0;aud.play().catch(()=>{});sendNotification(names[p]);}html+='<div class="prayer '+(p==next?'next':'')+'"><div class="prayer-info"><button class="audio-btn" onclick="togglePrayerAudio(\''+p+'\')" title="تفعيل/تعطيل الصوت">'+(isAudioActive?'🔊':'🔇')+'</button><span>🕌 '+names[p]+'</span></div><span class="time">'+ft+'</span></div>';});document.getElementById('list').innerHTML=html;}
+function enableAdhan(){enabled=true;requestNotificationPermission();aud.play().then(()=>{aud.pause();aud.currentTime=0;document.getElementById('enBtn').innerText='✅ مفعل ومحفوظ';localStorage.setItem('adhan','1');statusEl.innerText='✅ تم تفعيل الصوت والإشعارات وحفظها للأبد';}).catch(e=>{statusEl.innerText='اضغط تجربة أولاً';});}
+function testAdhan(){statusEl.innerText='جاري التشغيل...';requestNotificationPermission();aud.currentTime=0;aud.play().then(()=>{enabled=true;document.getElementById('enBtn').innerText='✅ مفعل ومحفوظ';statusEl.innerText='✅ يعمل! تم الحفظ';localStorage.setItem('adhan','1');sendNotification('التجربة');}).catch(e=>{statusEl.innerText='خطأ: '+e.message;});}
+calcQibla();setInterval(render,1000);render();
+</script>
+</body>
+</html>
